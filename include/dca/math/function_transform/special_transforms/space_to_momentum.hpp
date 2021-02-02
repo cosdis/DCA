@@ -158,7 +158,7 @@ const typename SpaceToMomentumTransform<RDmn, KDmn>::PhaseFactors& SpaceToMoment
       for (int b2 = 0; b2 < BDmn::dmn_size(); ++b2)
         for (int b1 = 0; b1 < BDmn::dmn_size(); ++b1)
           phase_factors(b1, b2, k) = std::exp(
-              Complex(0., util::innerProduct(k_vec, util::subtract(a_vecs[b2], a_vecs[b1]))));
+              Complex(0., util::innerProduct(k_vec, util::subtract(a_vecs[b1], a_vecs[b2]))));
     }
   });
 

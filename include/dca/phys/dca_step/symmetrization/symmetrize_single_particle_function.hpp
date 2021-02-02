@@ -437,22 +437,55 @@ template <typename scalartype, typename ClusterDomain>
 void symmetrize_single_particle_function::executeTimeOrFreq(
     func::function<scalartype, func::dmn_variadic<b, b, ClusterDomain, w>>& f, bool do_diff) {
   func::function<scalartype, func::dmn_variadic<b, b, ClusterDomain, w>> f_new;
-
+  using Cluster = typename ClusterDomain::parameter_type;
   int w_0 = w::dmn_size() - 1;
 
   for (int w_ind = 0; w_ind < w::dmn_size() / 2; ++w_ind) {
     for (int c_ind = 0; c_ind < ClusterDomain::dmn_size(); ++c_ind) {
       const int opposite_idx = oppositeSite<ClusterDomain>(c_ind);
-
       for (int b0 = 0; b0 < b::dmn_size(); ++b0) {
         for (int b1 = 0; b1 < b::dmn_size(); ++b1) {
-          scalartype tmp_0 = f(b0, b1, c_ind, w_ind);
-          scalartype tmp_1 = f(b1, b0, opposite_idx, w_0 - w_ind);
+            scalartype tmp_0 = f(b0, b1, c_ind, w_ind);
+            scalartype tmp_1 = f(b0, b1, opposite_idx, w_ind);
+            scalartype tmp_2 = f(b0, b1, c_ind, w_0 - w_ind);
+            scalartype tmp_3 = f(b0, b1, opposite_idx, w_0 - w_ind);
+            scalartype tmp_4 = f(b1, b0, c_ind, w_ind);
+            scalartype tmp_5 = f(b1, b0, opposite_idx, w_ind);
+            scalartype tmp_6 = f(b1, b0, c_ind, w_0 - w_ind);
+            scalartype tmp_7 = f(b1, b0, opposite_idx, w_0 - w_ind);
 
-          scalartype tmp = (tmp_0 + std::conj(tmp_1)) / 2.;
+            if (Cluster::REPRESENTATION == domains::MOMENTUM_SPACE) {
 
-          f_new(b0, b1, c_ind, w_ind) = tmp;
-          f_new(b1, b0, opposite_idx, w_0 - w_ind) = std::conj(tmp);
+               if ((b0 == 0 && b1 != b0)||(b1 == 0 && b1 != b0)) {
+                   scalartype tmp = (tmp_0 + tmp_1 - std::conj(tmp_2) - std::conj(tmp_3) - (tmp_4 + tmp_5 - std::conj(tmp_6) - std::conj(tmp_7))) / 8.;
+                   f_new(b0, b1, c_ind, w_ind) = tmp;
+                   f_new(b0, b1, opposite_idx, w_ind) = tmp;
+                   f_new(b0, b1, c_ind, w_0 - w_ind) = - 1.0 *std::conj(tmp);
+                   f_new(b0, b1, opposite_idx, w_0 - w_ind) = - 1.0 * std::conj(tmp);
+                   f_new(b1, b0, c_ind, w_ind) = - 1.0 * tmp;
+                   f_new(b1, b0, opposite_idx, w_ind) = - 1.0 * tmp;
+                   f_new(b1, b0, c_ind, w_0 - w_ind) = std::conj(tmp);
+                   f_new(b1, b0, opposite_idx, w_0 - w_ind) =  std::conj(tmp);
+                   }
+                else {
+                   scalartype tmp = (tmp_0 + tmp_1 + std::conj(tmp_2) + std::conj(tmp_3) + (tmp_4 + tmp_5 + std::conj(tmp_6) + std::conj(tmp_7))) / 8.;
+                   f_new(b0, b1, c_ind, w_ind) = tmp;
+                   f_new(b0, b1, opposite_idx, w_ind) = tmp;
+                   f_new(b0, b1, c_ind, w_0 - w_ind) = std::conj(tmp);
+                   f_new(b0, b1, opposite_idx, w_0 - w_ind) = std::conj(tmp);
+                   f_new(b1, b0, c_ind, w_ind) = tmp;
+                   f_new(b1, b0, opposite_idx, w_ind) = tmp;
+                   f_new(b1, b0, c_ind, w_0 - w_ind) = std::conj(tmp);
+                   f_new(b1, b0, opposite_idx, w_0 - w_ind) = std::conj(tmp);
+                 }
+               }
+            else if (Cluster::REPRESENTATION == domains::REAL_SPACE) {
+                scalartype tmp = (tmp_0 + std::conj(tmp_7)) / 2.;
+                f_new(b0, b1, c_ind, w_ind) = tmp;
+                f_new(b1, b0, opposite_idx, w_0 - w_ind) = std::conj(tmp);
+ 
+            }
+          
         }
       }
     }
@@ -708,7 +741,7 @@ int symmetrize_single_particle_function::oppositeSite(const int idx) {
   const int origin = Cluster::origin_index();
 
   if (Cluster::REPRESENTATION == domains::MOMENTUM_SPACE) {
-    return idx;
+    return Cluster::subtract(idx, origin);
   }
   else if (Cluster::REPRESENTATION == domains::REAL_SPACE) {
     return Cluster::subtract(idx, origin);

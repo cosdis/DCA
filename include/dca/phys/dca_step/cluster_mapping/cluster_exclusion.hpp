@@ -25,6 +25,8 @@
 #include "dca/phys/domains/time_and_frequency/time_domain.hpp"
 #include "dca/phys/domains/cluster/cluster_domain_aliases.hpp"
 #include "dca/util/plot.hpp"
+#include "dca/phys/dca_step/symmetrization/symmetrize.hpp"
+#include "dca/phys/dca_data/dca_data.hpp"
 
 namespace dca {
 namespace phys {
@@ -47,12 +49,14 @@ public:
   using CDA = ClusterDomainAliases<parameters_type::lattice_type::DIMENSION>;
   using RClusterDmn = typename CDA::RClusterDmn;
   using KClusterDmn = typename CDA::KClusterDmn;
+  using NuDmn = func::dmn_variadic<b, s>;  // orbital-spin index
+  using NuNuDmn = func::dmn_variadic<NuDmn, NuDmn>;
 
 public:
   cluster_exclusion(parameters_type& parameters_ref, MOMS_type& MOMS_ref);
 
   void execute();
-
+  func::function<int, NuNuDmn> H_symmetry;
 private:
   void compute_G0_K_w_cluster_excluded();
   void compute_G0_R_t_cluster_excluded();
@@ -71,8 +75,8 @@ cluster_exclusion<parameters_type, MOMS_type>::cluster_exclusion(parameters_type
 
 template <typename parameters_type, typename MOMS_type>
 void cluster_exclusion<parameters_type, MOMS_type>::execute() {
+  
   compute_G0_K_w_cluster_excluded();
-
   compute_G0_R_t_cluster_excluded();
 }
 
@@ -138,14 +142,15 @@ void cluster_exclusion<parameters_type, MOMS_type>::compute_G0_K_w_cluster_exclu
 template <typename parameters_type, typename MOMS_type>
 void cluster_exclusion<parameters_type, MOMS_type>::compute_G0_R_t_cluster_excluded() {
   profiler_type profiler(__FUNCTION__, "cluster_exclusion", __LINE__);
-
   MOMS.G0_k_w_cluster_excluded -= MOMS.G0_k_w;
-
+  H_symmetry = -1;
   {
     math::transform::FunctionTransform<w, t>::execute(MOMS.G0_k_w_cluster_excluded,
                                                       MOMS.G0_k_t_cluster_excluded);
 
     MOMS.G0_k_t_cluster_excluded += MOMS.G0_k_t;
+    
+    symmetrize::execute(MOMS.G0_k_t_cluster_excluded, H_symmetry, true);
 
     math::transform::FunctionTransform<KClusterDmn, RClusterDmn>::execute(MOMS.G0_k_t_cluster_excluded,
                                                               MOMS.G0_r_t_cluster_excluded);

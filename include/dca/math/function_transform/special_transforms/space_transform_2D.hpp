@@ -122,7 +122,7 @@ const auto& SpaceTransform2D<RDmn, KDmn, Real>::getPhaseFactors() {
     for (int k = 0; k < KDmn::dmn_size(); ++k) {
       const auto& k_vec = KDmn::get_elements()[k];
       for (int b = 0; b < BDmn::dmn_size(); ++b)
-        phase_factors(b, k) = std::exp(Complex(0., util::innerProduct(k_vec, a_vecs[b])));
+        phase_factors(b, k) = std::exp(Complex(0., -1.0*util::innerProduct(k_vec, a_vecs[b])));
     }
   });
 
